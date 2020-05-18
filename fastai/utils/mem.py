@@ -4,7 +4,7 @@ from ..imports.torch import *
 from ..core import *
 from ..script import *
 import functools, threading, time
-from .pynvml_gate import *
+#from .pynvml_gate import *
 from collections import namedtuple
 
 #is_osx = platform.system() == "Darwin"
@@ -12,8 +12,10 @@ use_gpu = torch.cuda.is_available()
 
 GPUMemory = namedtuple('GPUMemory', ['total', 'free', 'used'])
 
+"""
 if use_gpu:
     pynvml = load_pynvml_env()
+"""
 
 def preload_pytorch():
     torch.ones((1, 1)).cuda()
@@ -22,6 +24,7 @@ def b2mb(num):
     """ convert Bs to MBs and round down """
     return int(num/2**20)
 
+"""
 def gpu_mem_get(id=None):
     "get total, used and free memory (in MBs) for gpu `id`. if `id` is not passed, currently selected torch device is used"
     if not use_gpu: return GPUMemory(0, 0, 0)
@@ -32,11 +35,50 @@ def gpu_mem_get(id=None):
         return GPUMemory(*(map(b2mb, [info.total, info.free, info.used])))
     except:
         return GPUMemory(0, 0, 0)
+"""
 
+def get_memory():
+    cmd = 'rocm-smi'
+    args = '--showmeminfo TYPE vram'
+    temp = subprocess.run([cmd, '-d', '1','--showmeminfo', 'vram'], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = str(temp.stdout)
+    output = output.split("\n")
+    output = output[0].split('\\n')
+    res = []
+    for line in output:
+        res.append(line)
+    mem = []
+    for i in range(len(res) -5 , len(res) - 3):
+        line = res[i]
+        line = line.split(' ')
+        if (i == 4 ):
+            tot = line[ len(line) - 1]
+        if (i == 5):
+            used  = line[ len(line) - 1]
+    free = int(tot) - int(used)
+    return tot, free, used
+
+def gpu_mem_get(id=None):
+    "get total, used and free memory (in MBs) for gpu `id`. if `id` is not passed, currently selected torch device is used"
+    if not use_gpu: return GPUMemory(0, 0, 0)
+    if id is None: id = torch.cuda.current_device()
+    try:
+        total, free, used = get_memory()
+        return GPUMemory(*(map(b2mb, [int(total), int(free), int(used)])))
+    except:
+        return GPUMemory(0, 0, 0)
+
+"""
 def gpu_mem_get_all():
     "get total, used and free memory (in MBs) for each available gpu"
     if not use_gpu: return []
     return list(map(gpu_mem_get, range(pynvml.nvmlDeviceGetCount())))
+"""
+
+def gpu_mem_get_all():
+    "get total, used and free memory (in MBs) for each available gpu"
+    if not use_gpu: return []
+    return list(map(gpu_mem_get, range(torch.cuda.current_device())))
 
 def gpu_mem_get_free():
     "get free memory (in MBs) for the currently selected gpu id, w/o emptying the cache"
