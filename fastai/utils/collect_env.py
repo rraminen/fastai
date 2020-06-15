@@ -190,6 +190,7 @@ def check_perf():
     # note: windows nvidia driver version is slightly higher, see:
     # https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
     # note: add new entries if pytorch starts supporting new cudaXX
+    """
     nvidia2cuda = {
         "410.00": "10.0",
         "384.81":  "9.0",
@@ -209,5 +210,5 @@ def check_perf():
             print(f"✘ You are running pytorch built against cuda {cuda_ver}, your NVIDIA driver {nvidia_ver} supports cuda10. See https://pytorch.org/get-started/locally/ to install pytorch built against the faster CUDA version.")
     else:
         print(f"❓ Running cpu-only torch version, CUDA check is not relevant")
-
+    """
     print("\nRefer to https://docs.fast.ai/performance.html to make sense out of these checks and suggestions.")
