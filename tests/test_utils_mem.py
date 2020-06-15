@@ -4,7 +4,6 @@ from fastai.gen_doc.doctest import this_tests
 from utils.mem import *
 from utils.text import *
 from math import isclose
-import time
 
 # Important: When modifying this test module, make sure to validate that it runs w/o
 # GPU, by running: CUDA_VISIBLE_DEVICES="" pytest
@@ -86,7 +85,6 @@ def test_gpu_mem_trace():
     x1 = gpu_mem_allocate_mbs(10)
     x2 = gpu_mem_allocate_mbs(15)
     del x2
-    time.sleep(1)
     yield_to_thread() # hack: ensure peak thread gets a chance to measure the peak
     check_mtrace(used_exp=10, peaked_exp=15, mtrace=mtrace, abs_tol=2, ctx="rel some")
 

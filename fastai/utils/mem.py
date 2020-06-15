@@ -37,34 +37,34 @@ def gpu_mem_get(id=None):
         return GPUMemory(0, 0, 0)
 """
 
-def get_memory(id):
+def get_memory():
     cmd = 'rocm-smi'
-    temp = subprocess.run([cmd, '-d', str(id+1),'--showmeminfo', 'vram'], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    args = '--showmeminfo TYPE vram'
+    temp = subprocess.run([cmd, '-d', '1','--showmeminfo', 'vram'], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
     output = str(temp.stdout)
-    time.sleep(1)
     output = output.split("\n")
     output = output[0].split('\\n')
     res = []
-    total = free = used = 0
     for line in output:
         res.append(line)
+    mem = []
     for i in range(len(res) -5 , len(res) - 3):
         line = res[i]
         line = line.split(' ')
         if (i == 4 ):
-            total = int(line[ len(line) - 1])
+            tot = line[ len(line) - 1]
         if (i == 5):
-            used  = int(line[ len(line) - 1])
-    free = total - used
-    return total, free, used
+            used  = line[ len(line) - 1]
+    free = int(tot) - int(used)
+    return tot, free, used
 
 def gpu_mem_get(id=None):
     "get total, used and free memory (in MBs) for gpu `id`. if `id` is not passed, currently selected torch device is used"
     if not use_gpu: return GPUMemory(0, 0, 0)
     if id is None: id = torch.cuda.current_device()
     try:
-        total, free, used = get_memory(id)
-        return GPUMemory(*(map(b2mb, [total, free, used])))
+        total, free, used = get_memory()
+        return GPUMemory(*(map(b2mb, [int(total), int(free), int(used)])))
     except:
         return GPUMemory(0, 0, 0)
 
@@ -78,7 +78,7 @@ def gpu_mem_get_all():
 def gpu_mem_get_all():
     "get total, used and free memory (in MBs) for each available gpu"
     if not use_gpu: return []
-    return list(map(gpu_mem_get, range(torch.cuda.device_count())))
+    return list(map(gpu_mem_get, range(torch.cuda.current_device())))
 
 def gpu_mem_get_free():
     "get free memory (in MBs) for the currently selected gpu id, w/o emptying the cache"
@@ -93,17 +93,10 @@ def gpu_mem_get_used():
     "get used memory (in MBs) for the currently selected gpu id, w/o emptying the cache"
     return gpu_mem_get().used
 
-"""
 def gpu_mem_get_used_fast(gpu_handle):
     "get used memory (in MBs) for the currently selected gpu id, w/o emptying the cache, and needing the `gpu_handle` arg"
     info = pynvml.nvmlDeviceGetMemoryInfo(gpu_handle)
     return b2mb(info.used)
-"""
-
-def gpu_mem_get_used_fast(id):
-    "get used memory (in MBs) for the currently selected gpu id, w/o emptying the cache, and needing the `gpu_handle` arg"
-    total, free, used = get_memory(id)
-    return b2mb(used)
 
 def gpu_mem_get_used_no_cache():
     "get used memory (in MBs) for the currently selected gpu id, after emptying the cache"
@@ -208,19 +201,10 @@ class GPUMemTrace():
 
     # XXX: this is an unreliable function, since there is no thread priority
     # control and it may not run enough or not run at all
-    """
     def peak_monitor_func(self):
         gpu_handle = pynvml.nvmlDeviceGetHandleByIndex(torch.cuda.current_device())
         while True:
             self.used_peak = max(gpu_mem_get_used_fast(gpu_handle), self.used_peak)
-            if not self.peak_monitoring: break
-            time.sleep(0.001) # 1msec
-    """
-    def peak_monitor_func(self):
-        #gpu_handle = pynvml.nvmlDeviceGetHandleByIndex(torch.cuda.current_device())
-        while True:
-            #self.used_peak = max(gpu_mem_get_used_fast(gpu_handle), self.used_peak)
-            self.used_peak = max(gpu_mem_get_used_fast(torch.cuda.current_device()), self.used_peak)
             if not self.peak_monitoring: break
             time.sleep(0.001) # 1msec
 
