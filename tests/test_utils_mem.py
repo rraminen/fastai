@@ -86,7 +86,7 @@ def test_gpu_mem_trace():
     x1 = gpu_mem_allocate_mbs(10)
     x2 = gpu_mem_allocate_mbs(15)
     del x2
-    time.sleep(1)
+    time.sleep(2)
     yield_to_thread() # hack: ensure peak thread gets a chance to measure the peak
     check_mtrace(used_exp=10, peaked_exp=15, mtrace=mtrace, abs_tol=2, ctx="rel some")
 
